@@ -1,0 +1,82 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Edit Transaction #{{ form.instance.id }}{% endblock %}
+{% block content %}
+
+<div class="container-fluid p-0" style="max-width: 900px;">
+    
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        
+        <div class="card-header bg-warning bg-opacity-10 pt-4 px-4 pb-0 border-bottom-0">
+            <h5 class="fw-bold text-dark d-flex align-items-center">
+                <i class="bi bi-pencil-square text-warning me-2"></i> Edit Transaction #{{ form.instance.id }}
+            </h5>
+            <p class="text-muted small ms-4 mb-3">Update or remove the details below.</p>
+        </div>
+
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+                
+                <style>
+                    .toggle-label { color: #64748b; background: transparent; border: 1px solid transparent; cursor: pointer; }
+                    .toggle-label:hover { background: #f8fafc; }
+                    #option_sr:checked + label { background-color: #ecfdf5; color: #047857; border: 1px solid #10b981; }
+                    #option_dl:checked + label { background-color: #fff1f2; color: #be123c; border: 1px solid #f43f5e; }
+                </style>
+
+                <div class="mb-5 bg-light p-1 rounded-pill d-flex border">
+                    <input type="radio" class="btn-check" name="type" id="option_sr" value="SR" 
+                        {% if form.instance.type == 'SR' %}checked{% endif %}>
+                    <label class="btn rounded-pill fw-bold flex-fill py-2 transition-all toggle-label" for="option_sr">
+                        <i class="bi bi-arrow-down-circle me-1"></i> Incoming (SR)
+                    </label>
+
+                    <input type="radio" class="btn-check" name="type" id="option_dl" value="DL"
+                        {% if form.instance.type == 'DL' %}checked{% endif %}>
+                    <label class="btn rounded-pill fw-bold flex-fill py-2 transition-all toggle-label" for="option_dl">
+                        <i class="bi bi-truck me-1"></i> Outgoing (DL)
+                    </label>
+                </div>
+
+                <h6 class="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">Basic Information</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6"><label class="small fw-bold text-secondary">Date</label>{{ form.date }}</div>
+                    <div class="col-md-6"><label class="small fw-bold text-secondary">Party Name</label>{{ form.party_name }}</div>
+                </div>
+
+                <h6 class="text-uppercase text-muted fw-bold small mb-3 mt-4 letter-spacing-1">Location Details</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4"><label class="small fw-bold text-secondary">District</label>{{ form.district }}</div>
+                    <div class="col-md-4"><label class="small fw-bold text-secondary">Branch</label>{{ form.branch }}</div>
+                    <div class="col-md-4"><label class="small fw-bold text-secondary">Crop Year</label>{{ form.crop_year }}</div>
+                </div>
+
+                <h6 class="text-uppercase text-muted fw-bold small mb-3 mt-4 letter-spacing-1">Stock Inventory</h6>
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="small fw-bold text-secondary">Godown</label>{{ form.godown }}</div>
+                        <div class="col-md-6"><label class="small fw-bold text-secondary">Commodity</label>{{ form.crop }}</div>
+                        <div class="col-md-6"><label class="small fw-bold text-secondary">Bags</label>{{ form.bags }}</div>
+                        <div class="col-md-6"><label class="small fw-bold text-secondary">Weight (kg)</label>{{ form.weight }}</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                    
+                    <a href="{% url 'delete_transaction' form.instance.id %}" class="btn btn-outline-danger px-4 fw-bold">
+                        <i class="bi bi-trash-fill me-2"></i> Delete Entry
+                    </a>
+
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dashboard' %}" class="btn btn-light px-4 fw-bold">Cancel</a>
+                        <button type="submit" class="btn btn-warning px-5 fw-bold shadow-sm">
+                            <i class="bi bi-check-lg me-2"></i> Update Changes
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Official Registers{% endblock %}
+
+{% block content %}
+<style>
+    /* Paper Register Look */
+    .register-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    /* Tabs Styling */
+    .reg-tabs {
+        display: flex;
+        background: #f1f5f9;
+        border-bottom: 1px solid #cbd5e1;
+        padding: 0 20px;
+        gap: 10px;
+        padding-top: 15px;
+    }
+    .reg-tab {
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 8px 8px 0 0;
+        text-decoration: none;
+        border: 1px solid transparent;
+        font-size: 14px;
+    }
+    .reg-tab.active {
+        background: white;
+        color: #0f172a;
+        border-color: #cbd5e1;
+        border-bottom-color: white;
+        margin-bottom: -1px;
+    }
+    .reg-tab:hover:not(.active) {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    /* Table Styling */
+    .table-register {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 13px;
+    }
+    .table-register thead {
+        background: #f8fafc;
+        border-bottom: 2px solid #334155;
+    }
+    .table-register th {
+        text-transform: uppercase;
+        font-size: 11px;
+        color: #475569;
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        border-right: 1px solid #e2e8f0;
+    }
+    .table-register td {
+        padding: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #f1f5f9;
+        color: #0f172a;
+    }
+    .table-register tr:hover {
+        background-color: #ffffcc;
+    }
+    
+    /* Specific Column Widths */
+    .col-stack { width: 90px; font-weight: bold; color: #b91c1c; }
+    .col-date { width: 100px; }
+    .col-bags { text-align: right; font-weight: bold; }
+    .col-weight { text-align: right; }
+    .empty-field { color: #cbd5e1; font-style: italic; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark m-0"><i class="bi bi-book-half me-2"></i>Official Registers</h4>
+        <p class="text-muted small m-0">Digital copy of physical warehouse records</p>
+    </div>
+    
+    <form class="d-flex gap-2">
+        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request.GET.date_to }}">
+        <button type="submit" class="btn btn-sm btn-dark"><i class="bi bi-funnel"></i> Filter</button>
+    </form>
+</div>
+
+<div class="reg-tabs">
+    <a href="?tab=deposit" class="reg-tab {% if current_tab == 'deposit' %}active{% endif %}">
+        <i class="bi bi-arrow-down-circle me-1"></i> Deposit Register
+    </a>
+    <a href="?tab=delivery" class="reg-tab {% if current_tab == 'delivery' %}active{% endif %}">
+        <i class="bi bi-truck me-1"></i> Delivery Register
+    </a>
+</div>
+
+<div class="register-container">
+    <div class="table-responsive">
+        <table class="table-register">
+            
+            {% if current_tab == 'deposit' %}
+            <thead>
+                <tr>
+                    <th class="col-stack">Stack No.</th>
+                    <th class="col-date">Date</th>
+                    <th>Commodity / Year</th>
+                    <th>Depositor</th>
+                    <th class="col-bags">Bags</th>
+                    <th class="col-weight">Weight</th>
+                    <th>Godown</th>
+                    <th>Hamar/Labor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in register_data %}
+                <tr>
+                    <td class="col-stack">
+                        {% if t.stack_no %}
+                            {{ t.stack_no }}
+                        {% else %}
+                            <span class="empty-field">--</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="col-date">{{ t.date|date:"d.m.y" }}</td>
+                    <td>{{ t.crop.name }} {{ t.crop_year }}</td>
+                    <td>{{ t.party_name }}</td>
+                    <td class="col-bags">{{ t.bags }}</td>
+                    <td class="col-weight">{{ t.weight }}</td>
+                    <td>{{ t.godown.name }}</td>
+                    
+                    <td>
+                        {% if t.hamar_labor %}
+                            {{ t.hamar_labor }}
+                        {% else %}
+                            <span class="empty-field">--</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No Deposit Records Found</td></tr>
+                {% endfor %}
+            </tbody>
+
+            {% elif current_tab == 'delivery' %}
+            <thead>
+                <tr>
+                    <th class="col-stack">Gate Pass</th>
+                    <th class="col-date">Date</th>
+                    <th>Truck No.</th>
+                    <th>Commodity</th>
+                    <th class="col-bags">Bags</th>
+                    <th class="col-weight">Weight</th>
+                    <th>Shortage/Loss</th>
+                    <th>Stack Ref</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in register_data %}
+                <tr>
+                    <td class="col-stack text-primary">
+                        {% if t.gate_pass %}
+                            {{ t.gate_pass }}
+                        {% else %}
+                            <span class="empty-field">--</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="col-date">{{ t.date|date:"d.m.y" }}</td>
+
+                    <td>
+                        {% if t.truck_number %}
+                            {{ t.truck_number }}
+                        {% else %}
+                            <span class="empty-field">--</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ t.crop.name }}</td>
+                    <td class="col-bags">{{ t.bags }}</td>
+                    <td class="col-weight">{{ t.weight }}</td>
+
+                    <td class="text-danger">
+                        {% if t.shortage > 0 %}
+                            -{{ t.shortage }}
+                        {% else %}
+                            <span class="empty-field">--</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if t.stack_no %}
+                            Ref: {{ t.stack_no }}
+                        {% else %}
+                            {{ t.godown.name }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No Delivery Records Found</td></tr>
+                {% endfor %}
+            </tbody>
+            {% endif %}
+
+        </table>
+    </div>
+</div>
+{% endblock %}

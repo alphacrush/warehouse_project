@@ -1,0 +1,16 @@
+{% extends 'inventory/base.html' %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="card shadow mx-auto" style="max-width: 500px;">
+        <div class="card-body">
+            <h3 class="text-danger">⚠️ Are you sure?</h3>
+            <p>You are about to delete transaction #{{ object.id }}</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

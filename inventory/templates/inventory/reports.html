@@ -1,0 +1,222 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Registers{% endblock %}
+
+{% block content %}
+
+<style>
+    .hover-link { transition: color 0.2s; }
+    .hover-link:hover { color: #3b82f6 !important; text-decoration: underline !important; cursor: pointer; }
+</style>
+
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    
+    <div class="card-header bg-white pt-4 px-4 pb-3 border-bottom-0">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold text-dark mb-1">
+                    {% if current_type == 'SR' %}
+                        <i class="bi bi-arrow-down-circle-fill text-success me-2"></i>Incoming Stock Register
+                    {% elif current_type == 'DL' %}
+                        <i class="bi bi-truck-front-fill text-danger me-2"></i>Delivery Register
+                    {% else %}
+                        <i class="bi bi-journals text-primary me-2"></i>Master Register
+                    {% endif %}
+                </h4>
+                <p class="text-muted small mb-0">View, filter, and analyze inventory records.</p>
+            </div>
+            <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-outline-success fw-bold btn-sm shadow-sm">
+                <i class="bi bi-file-earmark-excel-fill me-2"></i>Export CSV
+            </a>
+        </div>
+
+        <div class="bg-light p-3 rounded-3 border">
+            <form method="get" id="filterForm" class="row g-2 align-items-end">
+                {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+                
+                <div class="col-12 d-flex gap-2 mb-2 align-items-center flex-wrap">
+                    <span class="small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Time Period:</span>
+                    
+                    <select id="quick_month" class="form-select form-select-sm border-0 shadow-sm" style="width: 130px;" onchange="updateDatesFromMonth()">
+                        <option value="">Select Month</option>
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
+
+                    <select id="quick_year" class="form-select form-select-sm border-0 shadow-sm" style="width: 100px;" onchange="updateDatesFromMonth()">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+
+                    <div class="vr mx-2 bg-secondary opacity-25"></div>
+
+                    <button type="button" class="btn btn-sm btn-white border shadow-sm text-primary fw-bold" onclick="setFinancialYear()">This FY</button>
+                    <button type="button" class="btn btn-sm btn-white border shadow-sm text-secondary" onclick="setLastDays(0)">Today</button>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="small fw-bold text-muted mb-1">Godown</label>
+                    <select name="godown" class="form-select form-select-sm border-0 shadow-sm">
+                        <option value="">All Godowns</option>
+                        {% for g in godowns %}
+                            <option value="{{ g.id }}" {% if request.GET.godown == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="small fw-bold text-muted mb-1">Commodity</label>
+                    <select name="crop" class="form-select form-select-sm border-0 shadow-sm">
+                        <option value="">All Commodities</option>
+                        {% for c in crops %}
+                            <option value="{{ c.id }}" {% if request.GET.crop == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="small fw-bold text-muted mb-1">From</label>
+                    <input type="date" id="date_from" name="date_from" class="form-control form-control-sm border-0 shadow-sm" value="{{ request.GET.date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="small fw-bold text-muted mb-1">To</label>
+                    <input type="date" id="date_to" name="date_to" class="form-control form-control-sm border-0 shadow-sm" value="{{ request.GET.date_to }}">
+                </div>
+                
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                        <i class="bi bi-funnel-fill me-1"></i> Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                <thead class="bg-light text-secondary text-uppercase fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">
+                    <tr>
+                        <th class="ps-4 py-3">Date</th>
+                        <th>Location & Crop</th>
+                        <th>Party Name (Click for Ledger)</th>
+                        <th>Bags</th>
+                        <th>Weight</th>
+                        <th class="text-end pe-4">Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-secondary">{{ t.date|date:"d M Y" }}</td>
+                        
+                        <td>
+                            <div class="fw-bold text-dark">{{ t.godown.name }}</div>
+                            <span class="badge rounded-pill mt-1 border" 
+                                  style="background-color: {% if t.type == 'SR' %}#ecfdf5{% else %}#fff1f2{% endif %}; 
+                                         color: {% if t.type == 'SR' %}#059669{% else %}#be123c{% endif %}; 
+                                         border-color: {% if t.type == 'SR' %}#10b981{% else %}#f43f5e{% endif %} !important;">
+                                {{ t.crop.name }}
+                            </span>
+                        </td>
+                        
+                        <td>
+                            <a href="{% url 'party_detail' t.party_name %}" class="text-dark fw-bold text-decoration-none hover-link" title="View Ledger for {{ t.party_name }}">
+                                {{ t.party_name }}
+                                <i class="bi bi-box-arrow-up-right ms-1 text-muted" style="font-size: 10px;"></i>
+                            </a>
+                            {% if t.district %}
+                                <div class="text-muted small mt-1" style="font-size: 11px;">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ t.district }}
+                                </div>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="fw-bold" style="font-size: 14px; color: {% if t.type == 'SR' %}#059669{% else %}#be123c{% endif %};">
+                            {% if t.type == 'SR' %}
+                                <i class="bi bi-arrow-down-short"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-up-short"></i>
+                            {% endif %}
+                            {{ t.bags }}
+                        </td>
+                        
+                        <td class="text-muted">{{ t.weight }} kg</td>
+                        
+                        <td class="text-end pe-4">
+                            <a href="{% url 'print_receipt' t.id %}" target="_blank" class="btn btn-sm btn-white border shadow-sm text-dark" title="Print Receipt">
+                                <i class="bi bi-printer-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-5 text-muted">No records found matching these filters.</td></tr>
+                    {% endfor %}
+                </tbody>
+                
+                <tfoot class="bg-light border-top fw-bold text-dark">
+                    <tr>
+                        <td colspan="3" class="text-end py-3 text-uppercase text-secondary small">Total Filtered:</td>
+                        <td class="py-3 fs-6">{{ total_bags }} Bags</td>
+                        <td class="py-3 fs-6">{{ total_weight }} kg</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatDate(date) { return date.toISOString().split('T')[0]; }
+    function submitForm() { document.getElementById('filterForm').submit(); }
+
+    // 1. Month/Year Selector Logic
+    function updateDatesFromMonth() {
+        const month = document.getElementById('quick_month').value;
+        const year = document.getElementById('quick_year').value;
+
+        if (month !== "") {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, parseInt(month) + 1, 0);
+
+            // Timezone offset correction
+            const offset = firstDay.getTimezoneOffset();
+            const firstDayLocal = new Date(firstDay.getTime() - (offset*60*1000));
+            const lastDayLocal = new Date(lastDay.getTime() - (offset*60*1000));
+
+            document.getElementById('date_from').value = firstDayLocal.toISOString().split('T')[0];
+            document.getElementById('date_to').value = lastDayLocal.toISOString().split('T')[0];
+        }
+    }
+
+    // 2. Preset Buttons Logic
+    function setLastDays(days) {
+        const today = new Date();
+        const past = new Date();
+        past.setDate(today.getDate() - days);
+        document.getElementById('date_to').value = formatDate(today);
+        document.getElementById('date_from').value = formatDate(past);
+        submitForm();
+    }
+
+    function setFinancialYear() {
+        const today = new Date();
+        const curMonth = today.getMonth(); 
+        let startYear = (curMonth < 3) ? today.getFullYear() - 1 : today.getFullYear();
+        document.getElementById('date_from').value = formatDate(new Date(startYear, 3, 1));
+        document.getElementById('date_to').value = formatDate(new Date(startYear + 1, 2, 31));
+        submitForm();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Import Data{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+    
+    <div class="card border-0 shadow-sm rounded-4 text-center overflow-hidden">
+        <div class="card-header bg-white pt-5 border-bottom-0">
+            <div class="mb-3 bg-success bg-opacity-10 text-success p-3 rounded-circle d-inline-block">
+                <i class="bi bi-file-earmark-spreadsheet-fill fs-1"></i>
+            </div>
+            <h4 class="fw-bold">Bulk Import</h4>
+            <p class="text-muted">Upload your Excel or CSV file to add multiple entries at once.</p>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="alert alert-light border text-start small mb-4">
+                <strong><i class="bi bi-info-circle me-1"></i> Required Columns:</strong><br>
+                Date, Godown, Crop, Person, Type (IN/OUT), Bags, Weight, District, Branch, Crop Year.
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    {{ form.file }} 
+                    </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success fw-bold py-2 shadow-sm">
+                        <i class="bi bi-cloud-upload-fill me-2"></i> Upload & Process
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-light text-muted">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
